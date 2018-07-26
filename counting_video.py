@@ -34,10 +34,13 @@ weights_path = '/home/paula/THINKSMARTER_/face-detectors/Tiny_Faces/hr_res101.pk
 def createVideo(dir_path, videoName):
     # dir_path = './output_video_sample_all_faces'
     # videoName = 'test_ExtendedTinyFaces_allFaces.avi'
+    if not os.path.exists(out_path):
+        os.makedirs(out_path)
+
     listdir = os.listdir(dir_path)
     listdir.sort()
     images = []
-    for f in tqdm(listdir):
+    for f in listdir:
         if f.endswith('.png'):
             images.append(f)
 
@@ -49,6 +52,7 @@ def createVideo(dir_path, videoName):
     fourcc = cv2.VideoWriter_fourcc(*'mp4v') # Be sure to use lower case
     out = cv2.VideoWriter(videoName, fourcc, 20.0, (width, height))
 
+    print("CREATING VIDEO --->")
     for image in tqdm(images):
 
         image_path = os.path.join(dir_path, image)
@@ -118,6 +122,7 @@ def savingFrames(clip_path):
 #IDEA: GET ALL DETECTIONS IN IMAGES (LEN 26)
 def getFrameAndNeighbourDetections(images):
     all_detections = []
+    print("Getting all the detections of the main frame and its neighbours --->")
     for row in tqdm(images):
         detections = []
         for frame in row:
@@ -169,6 +174,7 @@ print ('COUNTER S : '+ str(s))
 def getFramesDetections(frames):
     detections = []                     # Detections for one face of each frame
     detections_faces = []               # Detections for all faces of each frame
+    print("Getting all the frames detections --->")
     for i, frame in enumerate(tqdm(frames)):
         with tf.Graph().as_default():
             b = tiny_evaluate.evaluate(weight_file_path=weights_path, data_dir='.jpg', output_dir='', img=frame,
@@ -211,6 +217,8 @@ def saveFrames(frames,detections_faces, nbs, out_path):
     ff = []
     font = cv2.FONT_HERSHEY_SIMPLEX
     frames[:-2]
+    if not os.path.exists(out_path):
+        os.makedirs(out_path)
 
     for j, frame in enumerate(frames):
         img = frame.copy()
@@ -221,15 +229,15 @@ def saveFrames(frames,detections_faces, nbs, out_path):
         bottomLeftCornerOfText = (img.shape[1]-650,img.shape[0]-50)
         cv2.putText(img, 'Incremental count : %d' % nbs[l], bottomLeftCornerOfText , font, 1.5, (0, 255, 0), 3)
 
-        #if j in range(10, 89, 9):
-        if j in range(len(all_detections), 89, 9):
+        if j in range(10, 89, 9):
+        # if j in range(len(all_detections), 89, 9):
             l += 1
         images.append(img)
         cv2.imwrite(out_path+'/frames_%05d.png' % j, img[:,:,::-1])
 out_path = './output_video_sample_all_faces'
+
 saveFrames(frames,detections_faces, nbs, out_path)
 
-
 #IDEA: CREATE VIDEO
-videoName = 'test_ExtendedTinyFaces_allFaces.avi'
+videoName = 'test_incrementalCounter_allFaces.avi'
 createVideo(out_path, videoName)

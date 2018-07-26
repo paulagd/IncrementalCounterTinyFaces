@@ -1,5 +1,7 @@
 *.pyc
 *.npy
+*.avi
 weights.pkl
 
 model/*
+output_video_sample_all_faces/*
