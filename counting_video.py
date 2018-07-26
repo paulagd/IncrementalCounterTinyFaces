@@ -1,41 +1,22 @@
 import sys
-#sys.path.append('./Tiny_Faces_in_Tensorflow/')
-#import tiny_face_eval as tiny
-sys.path.append('/home/paula/THINKSMARTER_/Model/ExtendedTinyFaces/')
+# sys.path.append('/home/paula/THINKSMARTER_/Model/ExtendedTinyFaces/')
 # sys.path.append('/home/paula/THINKSMARTER_/Model/IncrementalCounterTinyFaces/')
-
-# import evaluate
 import evaluate as tiny_evaluate
 from metrics import *
 import tensorflow as tf
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-from sklearn.metrics import mean_squared_error as mse
-import glob
 import os
 import cv2
-import pandas as pd
-from sklearn.svm import SVC
 import numpy as np
-import imp
 import time
-import random
 import detect
-#import dlib
-from imgaug import augmenters as iaa
-#imp.reload(tiny)
-#imp.reload(detect)
-# %matplotlib inline
 from IPython import embed
 from tqdm import tqdm
 
-weights_path = '/home/paula/THINKSMARTER_/face-detectors/Tiny_Faces/hr_res101.pkl'
 
 def createVideo(dir_path, videoName):
+    """ Creates a video from the frames of a directory. """
     # dir_path = './output_video_sample_all_faces'
     # videoName = 'test_ExtendedTinyFaces_allFaces.avi'
-    if not os.path.exists(out_path):
-        os.makedirs(out_path)
 
     listdir = os.listdir(dir_path)
     listdir.sort()
@@ -67,6 +48,8 @@ def createVideo(dir_path, videoName):
     cv2.destroyAllWindows()
 
 def cutVideo(video_path, t1, t2):
+    """Cut the video on video_path between the instants t1 and t2 in seconds."""
+
     cap = cv2.VideoCapture('/home/paula/THINKSMARTER_/videoplayback.mp4')
     fps = cap.get(cv2.CAP_PROP_FPS)
 
@@ -94,8 +77,8 @@ def cutVideo(video_path, t1, t2):
     cap.release()
     out.release()
 
-#IDEA: GET ALL THE FRAMES AND IMAGES (neighbours)
-def savingFrames(clip_path):
+def gettingFrames(clip_path):
+    """ Get all the frames and images"""
     # clip_path =
     cap = cv2.VideoCapture(clip_path)
     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -117,10 +100,10 @@ def savingFrames(clip_path):
         images.append(imgs)
 
     return [frames, images]
-[frames, images] = savingFrames('test.avi')
 
-#IDEA: GET ALL DETECTIONS IN IMAGES (LEN 26)
-def getFrameAndNeighbourDetections(images):
+def getFrameAndNeighbourDetections(images, weights_path):
+    """ Get all the detections in images(len 26)"""
+
     all_detections = []
     print("Getting all the detections of the main frame and its neighbours --->")
     for row in tqdm(images):
@@ -133,11 +116,9 @@ def getFrameAndNeighbourDetections(images):
 
     np.save('numpy_alldetections',all_detections)
     return all_detections
-all_detections = np.load('numpy_alldetections.npy')
-
-#IDEA: GET MATCHEDS
 
 def getMatcheds(images,all_detections, threshold = 0.55):
+    """Get the matcheds on the frames."""
     matcheds = []
     t0 = time.time()
     for j in range(len(images)):
@@ -158,20 +139,20 @@ def getMatcheds(images,all_detections, threshold = 0.55):
 
     np.save('matcheds',matcheds)
     return matcheds
-matcheds = np.load('matcheds.npy')
 
-#IDEA: COUNTING
-s = 0
-# for j in range(10):
-for j in range(len(all_detections)):
-    detections = all_detections[j]
-    s += len(detections[0]) - matcheds[j]
-s += len(detections[3])
-print ('COUNTER S : '+ str(s))
+def counting(all_detections,matcheds):
+    """ Get the total of detections computed."""
+    s = 0
+    # for j in range(10):
+    for j in range(len(all_detections)):
+        detections = all_detections[j]
+        s += len(detections[0]) - matcheds[j]
+    s += len(detections[3])
+    print ('COUNTER S : '+ str(s))
+    return s
 
-
-#IDEA: GET ALL DETECTIONS in FRAMES (LEN 260)
 def getFramesDetections(frames):
+    """ Get all the detections in frames (len 260)"""
     detections = []                     # Detections for one face of each frame
     detections_faces = []               # Detections for all faces of each frame
     print("Getting all the frames detections --->")
@@ -187,12 +168,9 @@ def getFramesDetections(frames):
     np.save('numpy_detections_0',detections)
     np.save('numpy_detections_justFaces',detections_faces)
     return detections_faces
-# detections = np.load('numpy_detections_0.npy')
-detections_faces = np.load('numpy_detections_justFaces.npy')
 
-
-#IDEA: COMPUTE THE INCREMENTAL COUNTER
 def compute_nbs(all_detections,matcheds):
+    """ Computes the incremental counter nbs"""
     nbs = []
     init = len(all_detections[0][0])
 
@@ -206,21 +184,19 @@ def compute_nbs(all_detections,matcheds):
     init += len(detections_[3]) - matcheds[j]
     nbs.append(init)
     return nbs
-nbs = compute_nbs(all_detections,matcheds)
 
-
-#IDEA: SAVE THE FRAMES
 def saveFrames(frames,detections_faces, nbs, out_path):
-    k = 0
+    """Save all the frames with the information processed
+    (bounding boxes and incremental counter)"""
+    # k = 0
     l = 0
     images = []
     ff = []
     font = cv2.FONT_HERSHEY_SIMPLEX
     frames[:-2]
-    if not os.path.exists(out_path):
-        os.makedirs(out_path)
 
-    for j, frame in enumerate(frames):
+    print("Saving frames ... --->")
+    for j, frame in enumerate(tqdm(frames)):
         img = frame.copy()
         for detect_ in detections_faces[j]:
             pt1, pt2 = tuple(detect_[:2]), tuple(detect_[2:])
@@ -234,10 +210,38 @@ def saveFrames(frames,detections_faces, nbs, out_path):
             l += 1
         images.append(img)
         cv2.imwrite(out_path+'/frames_%05d.png' % j, img[:,:,::-1])
-out_path = './output_video_sample_all_faces'
 
-saveFrames(frames,detections_faces, nbs, out_path)
+def main():
+    weights_path = '/home/paula/THINKSMARTER_/face-detectors/Tiny_Faces/hr_res101.pkl'
+    out_path = './output_video_sample_all_faces'
+    videoName = 'test_incrementalCounter_allFaces.avi'
 
-#IDEA: CREATE VIDEO
-videoName = 'test_incrementalCounter_allFaces.avi'
-createVideo(out_path, videoName)
+    [frames, images] = gettingFrames('test.avi')
+
+    if os.path.isfile("numpy_alldetections.npy"):
+        all_detections = np.load('numpy_alldetections.npy')
+    else:
+        all_detections = getFrameAndNeighbourDetections(images, weights_path)
+
+    if os.path.isfile("matcheds.npy"):
+        matcheds = np.load('matcheds.npy')
+    else:
+        matcheds = getMatcheds(images,all_detections, threshold = 0.55)
+
+    if os.path.isfile("numpy_detections_justFaces.npy"):
+        # detections = np.load('numpy_detections_0.npy')
+        detections_faces = np.load('numpy_detections_justFaces.npy')
+    else:
+        detections_faces = getFramesDetections(frames)
+
+    max_detections = counting(all_detections,matcheds)
+    nbs = compute_nbs(all_detections,matcheds)
+
+    if not os.path.exists(out_path):
+        os.makedirs(out_path)
+
+    saveFrames(frames,detections_faces, nbs, out_path)
+    createVideo(out_path, videoName)
+
+if __name__ == "__main__":
+    main()
