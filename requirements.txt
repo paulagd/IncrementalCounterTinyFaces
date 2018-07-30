@@ -1,9 +1,7 @@
 absl-py==0.2.2
+cmake==3.9.6
 console-progressbar==1.0.2
-dlib==19.15.0
 h5py==2.8.0
-html5lib==1.0.1
-httplib2==0.9.1
 imageio==2.3.0
 imgaug==0.2.6
 ipython==6.4.0
