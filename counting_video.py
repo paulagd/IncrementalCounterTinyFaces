@@ -11,6 +11,7 @@ import time
 import detect
 from IPython import embed
 from tqdm import tqdm
+from crowd_counting.crowd_counting import CrowdCounting
 
 
 def createVideo(dir_path, videoName):
@@ -84,6 +85,8 @@ def gettingFrames(clip_path):
     fps = cap.get(cv2.CAP_PROP_FPS)
     i = 0
     frames = []
+    print("Getting all the frames ... ")
+
     while(True):
         ret, frame = cap.read()
         if ret:
@@ -110,7 +113,7 @@ def getFrameAndNeighbourDetections(images, weights_path):
         detections = []
         for frame in row:
             with tf.Graph().as_default():
-                b = evaluate.evaluate(weight_file_path=weights_path,  img=frame)
+                b = tiny_evaluate.evaluate(weight_file_path=weights_path,  img=frame)
             detections.append(b)
         all_detections.append(detections)
 
@@ -121,7 +124,8 @@ def getMatcheds(images,all_detections, threshold = 0.55):
     """Get the matcheds on the frames."""
     matcheds = []
     t0 = time.time()
-    for j in range(len(images)):
+    print("Getting matcheds ... --->")
+    for j in tqdm(range(len(images))):
         frames = images[j]
         detections = all_detections[j]
         matched = 0
@@ -151,11 +155,11 @@ def counting(all_detections,matcheds):
     print ('COUNTER S : '+ str(s))
     return s
 
-def getFramesDetections(frames):
+def getFramesDetections(frames,weights_path):
     """ Get all the detections in frames (len 260)"""
     detections = []                     # Detections for one face of each frame
     detections_faces = []               # Detections for all faces of each frame
-    print("Getting all the frames detections --->")
+    print("Getting all the frames detections... --->")
     for i, frame in enumerate(tqdm(frames)):
         with tf.Graph().as_default():
             b = tiny_evaluate.evaluate(weight_file_path=weights_path, data_dir='.jpg', output_dir='', img=frame,
@@ -179,11 +183,17 @@ def compute_nbs(all_detections,matcheds):
         nbs.append(init)
         detections_ = all_detections[j]
 
-        init += len(detections_[0]) - matcheds[j-1]
+        # init += len(detections_[0]) - matcheds[j-1]
+        init += len(detections_[0]) - matcheds[j]
 
     init += len(detections_[3]) - matcheds[j]
     nbs.append(init)
     return nbs
+
+def predict_crowd(img):
+    cc = CrowdCounting()
+    number_person = cc.run(img)
+    return number_person[0]
 
 def saveFrames(frames,detections_faces, nbs, out_path):
     """Save all the frames with the information processed
@@ -194,7 +204,8 @@ def saveFrames(frames,detections_faces, nbs, out_path):
     ff = []
     font = cv2.FONT_HERSHEY_SIMPLEX
     frames[:-2]
-
+    cc = 0
+    # crowd_counter = []
     print("Saving frames ... --->")
     for j, frame in enumerate(tqdm(frames)):
         img = frame.copy()
@@ -204,17 +215,25 @@ def saveFrames(frames,detections_faces, nbs, out_path):
 
         bottomLeftCornerOfText = (img.shape[1]-650,img.shape[0]-50)
         cv2.putText(img, 'Incremental count : %d' % nbs[l], bottomLeftCornerOfText , font, 1.5, (0, 255, 0), 3)
+        # cv2.putText(img, 'Incremental count : %d' % cc, bottomLeftCornerOfText , font, 1.5, (0, 255, 0), 3)
 
-        if j in range(10, 89, 9):
+        # if j in range(10, 89, 9):
+        if j in range(10, len(frames), 10):
         # if j in range(len(all_detections), 89, 9):
+            # print("Predicting crowd...")
+            # cc = predict_crowd(frames[j])
+            # crowd_counter.append(cc)
             l += 1
+            # print("!!!!! DONE !!!!!")
+
         images.append(img)
         cv2.imwrite(out_path+'/frames_%05d.png' % j, img[:,:,::-1])
 
 def main():
-    weights_path = '/home/paula/THINKSMARTER_/face-detectors/Tiny_Faces/hr_res101.pkl'
+    # weights_path = '/home/paula/THINKSMARTER_/face-detectors/Tiny_Faces/hr_res101.pkl'
+    weights_path = './weights/hr_res101.pkl'
     out_path = './output_video_sample_all_faces'
-    videoName = 'test_incrementalCounter_allFaces.avi'
+    videoName = 'test_incrementalCounter_new.avi'
 
     [frames, images] = gettingFrames('test.avi')
 
@@ -232,7 +251,7 @@ def main():
         # detections = np.load('numpy_detections_0.npy')
         detections_faces = np.load('numpy_detections_justFaces.npy')
     else:
-        detections_faces = getFramesDetections(frames)
+        detections_faces = getFramesDetections(frames, weights_path)
 
     max_detections = counting(all_detections,matcheds)
     nbs = compute_nbs(all_detections,matcheds)

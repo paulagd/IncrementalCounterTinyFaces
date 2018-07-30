@@ -66,7 +66,6 @@ class Model():
         var = tf.get_variable(name + "_b", shape, initializer=initializer, dtype=self.dtype)
       return var
 
-
     def _bn_variable_on_cpu(self, name, shape):
       """Helper to create a batch normalization Variable stored on CPU memory.
 
@@ -99,7 +98,6 @@ class Model():
         variance = tf.get_variable(name2 + "_variance", shape, initializer=initializer, dtype=self.dtype)
 
       return scale, offset, mean, variance
-
 
     def conv_block(self, bottom, name, shape, strides=[1,1,1,1], padding="SAME",
                    has_bias=False, add_relu=True, add_bn=True, eps=1.0e-5):
@@ -138,7 +136,6 @@ class Model():
       relu = tf.nn.relu(pre_activation) if add_relu else pre_activation
 
       return relu
-
 
     def conv_trans_layer(self, bottom, name, shape, strides=[1,1,1,1], padding="SAME", has_bias=False):
       """Create a block composed of multiple layers:

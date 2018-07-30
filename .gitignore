@@ -1,7 +1,10 @@
 *.pyc
 *.npy
 *.avi
-weights.pkl
+
+.ipynb_checkpoints/*
+output_crowd_prediction/*
+weights/*
 
 model/*
 output_video_sample_all_faces/*
