@@ -11,7 +11,7 @@ import time
 import detect
 from IPython import embed
 from tqdm import tqdm
-from crowd_counting.crowd_counting import CrowdCounting
+# from crowd_counting.crowd_counting import CrowdCounting
 
 
 def createVideo(dir_path, videoName):
